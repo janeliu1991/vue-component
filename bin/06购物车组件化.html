@@ -119,6 +119,7 @@
       `
             }
             //列表组件配置
+            //子组件通过自定义事件向父组件传递参数
         var CartList = {
                 props: ['list'],
                 template: `
@@ -127,9 +128,9 @@
             <img :src="item.img">
             <div class="name">{{item.name}}</div>
             <div class="change">
-              <a href="">－</a>
-              <input type="text" class="num" :value="item.num">
-              <a href="">＋</a>
+              <a href="" @click.prevent='sub(item.id)'>－</a>
+              <input type="text" class="num" :value="item.num" @blur='changeNum(item.id,$event)'>
+              <a href="" @click.prevent='add(item.id)'>＋</a>
             </div>
             <div class="del" @click.prevent='del(item.id)'>×</div>
           </div>
@@ -137,8 +138,27 @@
       `,
                 methods: {
                     del: function(id) {
-                        //把id传递给父组件
+                        //把id传递给父组件，触发cart-del自定义事件
                         this.$emit('cart-del', id)
+                    },
+                    changeNum: function(id, event) {
+                        this.$emit('change-num', {
+                            id: id,
+                            type: 'change',
+                            num: event.target.value
+                        })
+                    },
+                    add: function(id) {
+                        this.$emit('change-num', {
+                            id: id,
+                            type: 'add'
+                        })
+                    },
+                    sub: function(id) {
+                        this.$emit('change-num', {
+                            id: id,
+                            type: 'sub'
+                        })
                     }
                 }
             }
@@ -156,7 +176,7 @@
                     getSumCount: function() {
                         let sumCount = 0
                         this.list.forEach(item => {
-                            sumCount += item.num
+                            sumCount += parseInt(item.num)
                         });
                         return sumCount
                     },
@@ -207,10 +227,11 @@
                     }]
                 }
             },
+            //父组件监听子组件事件  $event用来接收传递过来的值对象
             template: `
         <div class='cart'>
           <cart-title :uname='uname'></cart-title>
-          <cart-list :list='list' @cart-del='cartDel($event)' ></cart-list>
+          <cart-list :list='list' @cart-del='cartDel($event)' @change-num='changeNum($event)'></cart-list>
           <cart-total :list='list'></cart-total>
         </div>
       `,
@@ -228,6 +249,42 @@
                         return id == item.id
                     })
                     this.list.splice(index, 1)
+                },
+                //这里的val是一个对象，包含id和num
+                changeNum: function(val) {
+                    // let index = this.list.findIndex(item => {
+                    //     return val.id == item.id
+                    // })
+                    // this.list[index].num = val.num
+                    // console.log(this.list[index]);
+                    if (val.type == 'change') {
+                        this.list.some(item => {
+                            if (item.id == val.id) {
+                                item.num = val.num
+                                    //终止遍历
+                                return true
+                            }
+
+                        })
+                    } else if (val.type == 'sub') {
+                        this.list.some(item => {
+                            if (item.id == val.id) {
+                                item.num--
+                                    //终止遍历
+                                    return true
+                            }
+
+                        })
+                    } else if (val.type == 'add') {
+                        this.list.some(item => {
+                            if (item.id == val.id) {
+                                item.num++
+                                    //终止遍历
+                                    return true
+                            }
+                        })
+
+                    }
                 }
             }
         });
